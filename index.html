@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Even/Odd Dominance Scanner — Deriv</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎯</text></svg>" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <div class="orb orb-1"></div>
+  <div class="orb orb-2"></div>
+
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-mark">🎯</span>
+        Even/Odd Dominance
+        <span class="brand-tag">120-tick scan · 10 markets</span>
+      </div>
+      <div class="status" id="status">
+        <span class="status-dot" id="statusDot"></span>
+        <span id="statusText">Connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section class="hero-mini">
+      <h1>Find the <span class="accent">dominance</span></h1>
+      <p>Scans 120 ticks across all 10 volatility indices. Only markets where the top 2 digits are fully Even or fully Odd will signal.</p>
+    </section>
+
+    <section class="control-bar">
+      <button class="btn-scan" id="scanBtn">
+        <span class="scan-icon">⚡</span>
+        <span class="scan-text">SCAN ALL 10 MARKETS</span>
+      </button>
+      <p class="scan-sub" id="scanSub">Connects, fetches 120 ticks per market, and applies the Even/Odd dominance filter.</p>
+    </section>
+
+    <!-- SCANNING ANIMATION -->
+    <div class="scanning-stage" id="scanningStage">
+      <div class="scan-ring"></div>
+      <div class="scan-markets" id="scanMarkets"></div>
+      <p class="scan-status" id="scanStatus">Scanning markets…</p>
+    </div>
+
+    <!-- RESULTS SECTION -->
+    <div class="results-stage" id="resultsStage">
+      <div class="results-header">
+        <h2>Dominance Signals Found</h2>
+        <span class="results-count" id="resultsCount">0</span>
+      </div>
+      <div class="signals-grid" id="signalsGrid"></div>
+      <div class="no-signals" id="noSignals" style="display:none;">
+        <div class="no-signal-icon">🔍</div>
+        <h3>No dominance signals right now</h3>
+        <p>None of the 10 markets currently meet the strict Even/Odd dominance rule. Try scanning again in a few moments.</p>
+      </div>
+    </div>
+
+    <!-- FULL BREAKDOWN -->
+    <div class="breakdown-section" id="breakdownSection">
+      <div class="breakdown-header">
+        <h2>Full Market Breakdown</h2>
+        <p>All 10 markets with their current top 2 and bottom 2 digits</p>
+      </div>
+      <div class="breakdown-grid" id="breakdownGrid"></div>
+    </div>
+
+    <p class="disclaimer">
+      ⚠️ This is a statistical filter, not a prediction. Past digit frequency does not guarantee future outcomes. Trade at your own risk.
+    </p>
+
+  </main>
+
+  <footer class="footer">
+    <p>Even/Odd Dominance Scanner · Not financial advice</p>
+    <p class="footer-links">
+      <a href="https://sammshawn.github.io/portofolio/" target="_blank" rel="noopener">Portfolio</a>
+      <span>·</span>
+      <a href="https://sammshawn.github.io/multi-scanner/" target="_blank" rel="noopener">Multi-Scanner</a>
+      <span>·</span>
+      <a href="https://sammshawn.github.io/ai-scanner/" target="_blank" rel="noopener">AI Scanner</a>
+    </p>
+  </footer>
+
+  <script src="script.js?v=1.0"></script>
+</body>
+</html>
