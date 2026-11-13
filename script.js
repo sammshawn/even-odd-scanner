@@ -1,7 +1,6 @@
 // ============================================
-//  EVEN/ODD DOMINANCE SCANNER
-//  Scans 120 ticks per market across 10 volatility indices
-//  Signals only when top 2 are same parity AND bottom 2 are opposite parity
+//  PARITY SCANNER — Dual Mode (Over/Under + Even/Odd)
+//  Fetches 120 ticks per market, applies selected mode filter
 // ============================================
 
 const WS_URL = `wss://api.derivws.com/trading/v1/options/ws/public`;
@@ -34,14 +33,38 @@ const resultsCount = document.getElementById("resultsCount");
 const noSignals = document.getElementById("noSignals");
 const breakdownSection = document.getElementById("breakdownSection");
 const breakdownGrid = document.getElementById("breakdownGrid");
+const modeBtns = document.querySelectorAll(".mode-btn");
+const modeDesc = document.getElementById("modeDesc");
 
 let ws = null;
 let reqId = 1;
 let isScanning = false;
+let currentMode = "overunder";
 const tickBuffers = {};
 const pendingCounts = {};
 let wsReady = false;
 const wsReadyCallbacks = [];
+let lastResults = null;
+
+// ---- MODE SWITCH ----
+modeBtns.forEach((btn) => {
+  btn.addEventListener("click", () => {
+    modeBtns.forEach((b) => b.classList.remove("active"));
+    btn.classList.add("active");
+    currentMode = btn.dataset.mode;
+
+    if (currentMode === "overunder") {
+      modeDesc.innerHTML = "<strong>Over/Under Mode:</strong> Signal fires when the top 2 digits are all Even AND the bottom 2 are all Odd (→ UNDER), or the opposite (→ OVER).";
+    } else {
+      modeDesc.innerHTML = "<strong>Even/Odd Mode:</strong> Signal fires when BOTH the top 2 and bottom 2 digits are all Even (→ EVEN), or BOTH are all Odd (→ ODD).";
+    }
+
+    // Re-render last results if they exist
+    if (lastResults) {
+      displayResults(lastResults);
+    }
+  });
+});
 
 // ---- WEBSOCKET ----
 function connect() {
@@ -87,7 +110,6 @@ function waitForWsReady() {
   });
 }
 
-// ---- FETCH HISTORY ----
 function fetchMarketHistory(symbol) {
   return new Promise((resolve) => {
     tickBuffers[symbol] = [];
@@ -136,14 +158,12 @@ function markChipDone(symbol) {
 
 function sleep(ms) { return new Promise((r) => setTimeout(r, ms)); }
 
-// ---- DIGIT EXTRACTION ----
 function getLastDigit(quote, decimals) {
   const str = parseFloat(quote).toFixed(decimals);
   return parseInt(str.slice(-1), 10);
 }
 
 // ---- ANALYSIS ----
-// Returns the digit frequency distribution and the analysis
 function analyzeMarket(prices, decimals) {
   if (!prices || prices.length < 20) return null;
 
@@ -156,15 +176,13 @@ function analyzeMarket(prices, decimals) {
   const total = freq.reduce((a, b) => a + b, 0);
   if (total < 20) return null;
 
-  // Sort digits by frequency (descending)
   const sorted = freq
     .map((count, digit) => ({ digit, count, pct: (count / total) * 100 }))
     .sort((a, b) => b.count - a.count || a.digit - b.digit);
 
   const top2 = sorted.slice(0, 2);
-  const bottom2 = sorted.slice(-2).reverse(); // least frequent first
+  const bottom2 = sorted.slice(-2).reverse();
 
-  // Determine parity
   const isEven = (d) => d % 2 === 0;
   const isOdd = (d) => d % 2 === 1;
 
@@ -176,23 +194,26 @@ function analyzeMarket(prices, decimals) {
   let signal = null;
   let reason = "";
 
-  if (topAllEven && bottomAllOdd) {
-    signal = "under";
-    reason = `Top 2 digits (${top2.map(x => x.digit).join(", ")}) are all Even. Bottom 2 digits (${bottom2.map(x => x.digit).join(", ")}) are all Odd. → UNDER signal.`;
-  } else if (topAllOdd && bottomAllEven) {
-    signal = "over";
-    reason = `Top 2 digits (${top2.map(x => x.digit).join(", ")}) are all Odd. Bottom 2 digits (${bottom2.map(x => x.digit).join(", ")}) are all Even. → OVER signal.`;
+  if (currentMode === "overunder") {
+    if (topAllEven && bottomAllOdd) {
+      signal = "under";
+      reason = `Top 2 digits (${top2.map(x => x.digit).join(", ")}) are all Even. Bottom 2 (${bottom2.map(x => x.digit).join(", ")}) are all Odd. → UNDER signal.`;
+    } else if (topAllOdd && bottomAllEven) {
+      signal = "over";
+      reason = `Top 2 digits (${top2.map(x => x.digit).join(", ")}) are all Odd. Bottom 2 (${bottom2.map(x => x.digit).join(", ")}) are all Even. → OVER signal.`;
+    }
+  } else {
+    // Even/Odd mode
+    if (topAllEven && bottomAllEven) {
+      signal = "even";
+      reason = `Top 2 (${top2.map(x => x.digit).join(", ")}) AND bottom 2 (${bottom2.map(x => x.digit).join(", ")}) are all Even. → EVEN signal.`;
+    } else if (topAllOdd && bottomAllOdd) {
+      signal = "odd";
+      reason = `Top 2 (${top2.map(x => x.digit).join(", ")}) AND bottom 2 (${bottom2.map(x => x.digit).join(", ")}) are all Odd. → ODD signal.`;
+    }
   }
 
-  return {
-    freq,
-    total,
-    sorted,
-    top2,
-    bottom2,
-    signal,
-    reason,
-  };
+  return { freq, total, sorted, top2, bottom2, signal, reason };
 }
 
 // ---- MAIN SCAN ----
@@ -227,7 +248,6 @@ async function runScan() {
   await sleep(300);
   scanningStage.classList.remove("show");
 
-  // Analyze each market
   const results = [];
   for (const m of MARKETS) {
     const ticks = histories[m.symbol] || [];
@@ -237,6 +257,7 @@ async function runScan() {
     }
   }
 
+  lastResults = results;
   displayResults(results);
 
   isScanning = false;
@@ -249,14 +270,11 @@ async function runScan() {
 function displayResults(results) {
   const signals = results.filter((r) => r.analysis.signal !== null);
 
-  // Show results stage
   resultsStage.classList.add("show");
   breakdownSection.classList.add("show");
 
-  // Update count
   resultsCount.textContent = signals.length;
 
-  // Render signals grid
   if (signals.length === 0) {
     signalsGrid.innerHTML = "";
     noSignals.style.display = "block";
@@ -264,9 +282,8 @@ function displayResults(results) {
     noSignals.style.display = "none";
     signalsGrid.innerHTML = signals.map((r) => {
       const sig = r.analysis;
-      const isOver = sig.signal === "over";
-      const sigClass = isOver ? "over" : "under";
-      const sigLabel = isOver ? "OVER" : "UNDER";
+      const sigClass = sig.signal;
+      const sigLabel = sig.signal.toUpperCase();
 
       const topDigits = sig.top2.map((x) =>
         `<span class="digit-pill top ${x.digit % 2 === 0 ? "even" : "odd"}">${x.digit} · ${x.pct.toFixed(1)}%</span>`
@@ -294,10 +311,9 @@ function displayResults(results) {
     }).join("");
   }
 
-  // Render breakdown
   breakdownGrid.innerHTML = results.map((r) => {
     const sig = r.analysis;
-    const cardClass = sig.signal === "over" ? "signal-over" : sig.signal === "under" ? "signal-under" : "";
+    const cardClass = sig.signal ? `signal-${sig.signal}` : "";
 
     const topDigits = sig.top2.map((x) =>
       `<span class="bd-digit ${x.digit % 2 === 0 ? "even" : "odd"}">${x.digit}</span>`
@@ -320,7 +336,7 @@ function displayResults(results) {
           <span class="bd-label">Low 2</span>
           <div class="bd-digits">${bottomDigits}</div>
         </div>
-        ${sig.signal ? `<div style="font-size:0.75rem; color: ${sig.signal === 'over' ? 'var(--green)' : 'var(--red)'}; font-weight:700; margin-top:0.4rem;">⚡ ${sig.signal.toUpperCase()} SIGNAL</div>` : ''}
+        ${sig.signal ? `<div style="font-size:0.75rem; color: ${sig.signal === 'over' || sig.signal === 'even' ? 'var(--green)' : 'var(--red)'}; font-weight:700; margin-top:0.4rem;">⚡ ${sig.signal.toUpperCase()} SIGNAL</div>` : ''}
       </div>
     `;
   }).join("");
