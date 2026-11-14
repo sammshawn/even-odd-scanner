@@ -193,20 +193,53 @@ body {
 }
 .mode-desc strong { color: var(--text); }
 
-/* CONTROL BAR */
-.control-bar {
-  text-align: center;
-  margin-bottom: 2rem;
+/* CONTROL ROW (tick selector + scan button) */
+.control-row {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.6rem;
 }
+.tick-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.tick-selector label {
+  font-size: 0.72rem;
+  color: var(--muted);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.tick-selector select {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.2s;
+  min-width: 140px;
+}
+.tick-selector select:focus { border-color: var(--blue); }
+.tick-selector select option { background: #0a0f18; color: var(--text); }
+
 .btn-scan {
   background: linear-gradient(135deg, var(--blue), var(--cyan));
   color: white;
   border: none;
-  padding: 1rem 2.5rem;
+  padding: 0.85rem 2.2rem;
   border-radius: 999px;
   font-family: inherit;
   font-weight: 800;
-  font-size: 1rem;
+  font-size: 0.95rem;
   letter-spacing: 0.05em;
   cursor: pointer;
   display: inline-flex;
@@ -214,6 +247,7 @@ body {
   gap: 0.7rem;
   box-shadow: 0 0 40px -8px var(--blue-glow);
   transition: transform 0.2s, box-shadow 0.3s;
+  height: 46px;
 }
 .btn-scan:hover {
   transform: translateY(-2px);
@@ -226,9 +260,10 @@ body {
 }
 .scan-icon { font-size: 1.15rem; }
 .scan-sub {
+  text-align: center;
   color: var(--muted);
   font-size: 0.82rem;
-  margin-top: 0.8rem;
+  margin-bottom: 2rem;
 }
 
 /* SCANNING ANIMATION */
@@ -585,7 +620,10 @@ body {
   .topbar-inner { padding: 0.8rem 1rem; }
   .brand-tag { display: none; }
   .container { padding: 1.2rem 1rem 3rem; }
-  .btn-scan { padding: 0.9rem 1.8rem; font-size: 0.9rem; }
+  .btn-scan { padding: 0.75rem 1.6rem; font-size: 0.85rem; }
   .signal-market { font-size: 1.1rem; }
   .mode-switch { max-width: 100%; }
+  .control-row { flex-direction: column; align-items: stretch; }
+  .tick-selector { width: 100%; }
+  .tick-selector select { width: 100%; }
 }

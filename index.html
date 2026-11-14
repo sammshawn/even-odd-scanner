@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=2.0" />
+  <link rel="stylesheet" href="style.css?v=3.0" />
 </head>
 <body>
 
@@ -20,7 +20,7 @@
       <div class="brand">
         <span class="brand-mark">🎯</span>
         Parity Scanner
-        <span class="brand-tag">120-tick scan · 10 markets</span>
+        <span class="brand-tag" id="brandTag">120-tick scan · 10 markets</span>
       </div>
       <div class="status" id="status">
         <span class="status-dot" id="statusDot"></span>
@@ -33,7 +33,7 @@
 
     <section class="hero-mini">
       <h1>Find the <span class="accent">parity dominance</span></h1>
-      <p>Scans 120 ticks across all 10 volatility indices. Choose your filter below.</p>
+      <p>Scans your chosen tick window across all 10 volatility indices. Choose your filter and tick count below.</p>
     </section>
 
     <!-- MODE SWITCH -->
@@ -47,13 +47,26 @@
       <strong>Over/Under Mode:</strong> Signal fires when the top 2 digits are all Even AND the bottom 2 are all Odd (→ UNDER), or the opposite (→ OVER).
     </div>
 
-    <section class="control-bar">
+    <!-- CONTROL ROW: TICK DROPDOWN + SCAN BUTTON -->
+    <section class="control-row">
+      <div class="tick-selector">
+        <label for="tickSelect">Ticks to scan</label>
+        <select id="tickSelect">
+          <option value="120" selected>120 ticks</option>
+          <option value="240">240 ticks</option>
+          <option value="300">300 ticks</option>
+          <option value="500">500 ticks</option>
+          <option value="1000">1000 ticks</option>
+        </select>
+      </div>
+
       <button class="btn-scan" id="scanBtn">
         <span class="scan-icon">⚡</span>
         <span class="scan-text">SCAN ALL 10 MARKETS</span>
       </button>
-      <p class="scan-sub" id="scanSub">Connects, fetches 120 ticks per market, and applies the selected parity filter.</p>
     </section>
+
+    <p class="scan-sub" id="scanSub">Connects, fetches ticks per market, and applies the selected parity filter.</p>
 
     <!-- SCANNING ANIMATION -->
     <div class="scanning-stage" id="scanningStage">
@@ -72,7 +85,7 @@
       <div class="no-signals" id="noSignals" style="display:none;">
         <div class="no-signal-icon">🔍</div>
         <h3>No dominance signals right now</h3>
-        <p>None of the 10 markets currently meet the strict parity rule for this mode. Try scanning again in a few moments.</p>
+        <p>None of the 10 markets currently meet the strict parity rule for this mode and tick window. Try another mode or rescan.</p>
       </div>
     </div>
 
@@ -102,6 +115,6 @@
     </p>
   </footer>
 
-  <script src="script.js?v=2.0"></script>
+  <script src="script.js?v=3.0"></script>
 </body>
 </html>

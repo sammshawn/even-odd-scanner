@@ -1,10 +1,9 @@
 // ============================================
-//  PARITY SCANNER — Dual Mode (Over/Under + Even/Odd)
-//  Fetches 120 ticks per market, applies selected mode filter
+//  PARITY SCANNER — Dual Mode + Tick Selector
+//  Fetches configurable ticks per market, applies selected mode filter
 // ============================================
 
 const WS_URL = `wss://api.derivws.com/trading/v1/options/ws/public`;
-const TICKS_TO_FETCH = 120;
 
 const MARKETS = [
   { symbol: "R_10",     name: "Volatility 10",      short: "V10",      decimals: 3 },
@@ -35,16 +34,26 @@ const breakdownSection = document.getElementById("breakdownSection");
 const breakdownGrid = document.getElementById("breakdownGrid");
 const modeBtns = document.querySelectorAll(".mode-btn");
 const modeDesc = document.getElementById("modeDesc");
+const tickSelect = document.getElementById("tickSelect");
+const brandTag = document.getElementById("brandTag");
 
 let ws = null;
 let reqId = 1;
 let isScanning = false;
 let currentMode = "overunder";
+let currentTicks = 120;
 const tickBuffers = {};
 const pendingCounts = {};
 let wsReady = false;
 const wsReadyCallbacks = [];
 let lastResults = null;
+
+// ---- TICK SELECT ----
+tickSelect.addEventListener("change", () => {
+  currentTicks = parseInt(tickSelect.value, 10);
+  brandTag.textContent = `${currentTicks}-tick scan · 10 markets`;
+  scanSub.textContent = `Connects, fetches ${currentTicks} ticks per market, and applies the selected parity filter.`;
+});
 
 // ---- MODE SWITCH ----
 modeBtns.forEach((btn) => {
@@ -59,9 +68,13 @@ modeBtns.forEach((btn) => {
       modeDesc.innerHTML = "<strong>Even/Odd Mode:</strong> Signal fires when BOTH the top 2 and bottom 2 digits are all Even (→ EVEN), or BOTH are all Odd (→ ODD).";
     }
 
-    // Re-render last results if they exist
-    if (lastResults) {
-      displayResults(lastResults);
+    // Re-analyze last results without rescanning
+    if (lastResults && lastResults.length > 0) {
+      const reanalyzed = lastResults.map((r) => {
+        const analysis = analyzeMarket(r.rawTicks, r.market.decimals);
+        return { market: r.market, rawTicks: r.rawTicks, analysis };
+      });
+      displayResults(reanalyzed);
     }
   });
 });
@@ -110,7 +123,7 @@ function waitForWsReady() {
   });
 }
 
-function fetchMarketHistory(symbol) {
+function fetchMarketHistory(symbol, count) {
   return new Promise((resolve) => {
     tickBuffers[symbol] = [];
     pendingCounts[symbol] = 1;
@@ -118,7 +131,7 @@ function fetchMarketHistory(symbol) {
     const timeout = setTimeout(() => {
       pendingCounts[symbol] = 0;
       resolve(tickBuffers[symbol]);
-    }, 4000);
+    }, 6000);
 
     const poll = setInterval(() => {
       if (pendingCounts[symbol] === 0) {
@@ -130,7 +143,7 @@ function fetchMarketHistory(symbol) {
 
     ws.send(JSON.stringify({
       ticks_history: symbol,
-      count: TICKS_TO_FETCH,
+      count: count,
       end: "latest",
       style: "ticks",
       req_id: reqId++,
@@ -203,7 +216,6 @@ function analyzeMarket(prices, decimals) {
       reason = `Top 2 digits (${top2.map(x => x.digit).join(", ")}) are all Odd. Bottom 2 (${bottom2.map(x => x.digit).join(", ")}) are all Even. → OVER signal.`;
     }
   } else {
-    // Even/Odd mode
     if (topAllEven && bottomAllEven) {
       signal = "even";
       reason = `Top 2 (${top2.map(x => x.digit).join(", ")}) AND bottom 2 (${bottom2.map(x => x.digit).join(", ")}) are all Even. → EVEN signal.`;
@@ -238,8 +250,8 @@ async function runScan() {
   for (const m of MARKETS) {
     if (!ws || ws.readyState !== WebSocket.OPEN) break;
     setChipActive(m.symbol);
-    scanStatus.textContent = `Fetching ${m.short} history…`;
-    const ticks = await fetchMarketHistory(m.symbol);
+    scanStatus.textContent = `Fetching ${m.short} history (${currentTicks} ticks)…`;
+    const ticks = await fetchMarketHistory(m.symbol, currentTicks);
     histories[m.symbol] = ticks;
     await sleep(80);
   }
@@ -253,7 +265,7 @@ async function runScan() {
     const ticks = histories[m.symbol] || [];
     const analysis = analyzeMarket(ticks, m.decimals);
     if (analysis) {
-      results.push({ market: m, analysis });
+      results.push({ market: m, rawTicks: ticks, analysis });
     }
   }
 
@@ -263,7 +275,7 @@ async function runScan() {
   isScanning = false;
   scanBtn.disabled = false;
   scanBtn.querySelector(".scan-text").textContent = "SCAN AGAIN";
-  scanSub.textContent = `Scanned ${results.length} markets · ${new Date().toLocaleTimeString()}`;
+  scanSub.textContent = `Scanned ${results.length} markets · ${currentTicks} ticks · ${new Date().toLocaleTimeString()}`;
 }
 
 // ---- DISPLAY RESULTS ----
@@ -295,7 +307,7 @@ function displayResults(results) {
       return `
         <div class="signal-card ${sigClass}">
           <div class="signal-market">${r.market.short}</div>
-          <div class="signal-market-sub">${r.market.name}</div>
+          <div class="signal-market-sub">${r.market.name} · ${sig.total} ticks</div>
           <div class="signal-badge ${sigClass}">${sigLabel}</div>
           <div class="signal-digits">
             <span class="digit-pill" style="background: transparent; border: none; color: var(--muted); padding-left: 0;">Top:</span>
